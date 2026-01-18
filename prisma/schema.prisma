@@ -1,16 +1,148 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
+//////////////////////
+// ENUMS
+//////////////////////
+
+enum UserRole {
+  ADMIN
+  CLIENT
+  DRIVER
 }
 
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PICKED_UP
+  IN_TRANSIT
+  DELIVERED
+  CANCELED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+enum VehicleType {
+  BIKE
+  MOTORBIKE
+  CAR
+  TRUCK
+}
+
+//////////////////////
+// USER / AUTH
+//////////////////////
+
 model User {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   name      String
-  email     String   @unique
+  email     String    @unique
+  phone     String?
   password  String
-  createdAt DateTime @default(now())
+  role      UserRole  @default(CLIENT)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relations
+  orders    Order[]
+  driver    Driver?
+}
+
+//////////////////////
+// DRIVER
+//////////////////////
+
+model Driver {
+  id          Int       @id @default(autoincrement())
+  userId      Int       @unique
+  licenseNo   String
+  isAvailable Boolean   @default(true)
+
+  user        User      @relation(fields: [userId], references: [id])
+  vehicle     Vehicle?
+  deliveries  Delivery[]
+}
+
+//////////////////////
+// VEHICLE
+//////////////////////
+
+model Vehicle {
+  id          Int         @id @default(autoincrement())
+  driverId    Int         @unique
+  type        VehicleType
+  plateNumber String
+  color       String?
+
+  driver      Driver      @relation(fields: [driverId], references: [id])
+}
+
+//////////////////////
+// ORDER / DELIVERY
+//////////////////////
+
+model Order {
+  id              Int          @id @default(autoincrement())
+  userId          Int
+  status          OrderStatus  @default(PENDING)
+  pickupAddress   String
+  deliveryAddress String
+  price           Float
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  user            User         @relation(fields: [userId], references: [id])
+  delivery        Delivery?
+  payment         Payment?
+}
+
+model Delivery {
+  id        Int      @id @default(autoincrement())
+  orderId   Int      @unique
+  driverId  Int
+  startedAt DateTime?
+  endedAt   DateTime?
+
+  order     Order   @relation(fields: [orderId], references: [id])
+  driver    Driver  @relation(fields: [driverId], references: [id])
+  tracking  Tracking[]
+}
+
+//////////////////////
+// TRACKING GPS
+//////////////////////
+
+model Tracking {
+  id         Int      @id @default(autoincrement())
+  deliveryId Int
+  latitude   Float
+  longitude  Float
+  createdAt  DateTime @default(now())
+
+  delivery   Delivery @relation(fields: [deliveryId], references: [id])
+}
+
+//////////////////////
+// PAYMENT
+//////////////////////
+
+model Payment {
+  id        Int           @id @default(autoincrement())
+  orderId   Int           @unique
+  amount    Float
+  method    String        // mobile money, cash, card
+  status    PaymentStatus @default(PENDING)
+  paidAt    DateTime?
+
+  order     Order         @relation(fields: [orderId], references: [id])
 }
