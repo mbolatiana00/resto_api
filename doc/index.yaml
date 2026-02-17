@@ -1,0 +1,865 @@
+openapi: 3.0.0
+info:
+  title: Sakafo Delivery API
+  description: API pour l'application de livraison Sakafo avec gestion des chauffeurs et suivi GPS
+  version: 1.0.0
+  contact:
+    name: Support Sakafo
+    email: support@sakafo.com
+
+servers:
+  - url: https://api.sakafo.com/v1
+    description: Serveur de production
+  - url: http://localhost:3000/api/v1
+    description: Serveur local
+
+tags:
+  - name: Authentification
+    description: Endpoints d'authentification
+  - name: Utilisateurs
+    description: Gestion des utilisateurs
+  - name: Chauffeurs
+    description: Gestion des chauffeurs et véhicules
+  - name: Commandes
+    description: Gestion des commandes
+  - name: Livraisons
+    description: Gestion des livraisons
+  - name: Suivi GPS
+    description: Suivi en temps réel des livraisons
+  - name: Paiements
+    description: Gestion des paiements
+
+paths:
+  /auth/register:
+    post:
+      tags:
+        - Authentification
+      summary: Inscription nouvel utilisateur
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - password
+                - phone
+              properties:
+                name:
+                  type: string
+                  example: "Jean Dupont"
+                email:
+                  type: string
+                  format: email
+                  example: "jean@example.com"
+                password:
+                  type: string
+                  format: password
+                phone:
+                  type: string
+                  example: "+261320000000"
+                role:
+                  type: string
+                  enum: [ADMIN, CLIENT, DRIVER]
+                  default: CLIENT
+      responses:
+        '201':
+          description: Utilisateur créé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Email déjà utilisé ou données invalides
+
+  /auth/login:
+    post:
+      tags:
+        - Authentification
+      summary: Connexion utilisateur
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Connexion réussie
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIs..."
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Email ou mot de passe incorrect
+
+  /users/{id}:
+    get:
+      tags:
+        - Utilisateurs
+      summary: Récupérer un utilisateur
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Détails utilisateur
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: Utilisateur non trouvé
+
+    put:
+      tags:
+        - Utilisateurs
+      summary: Mettre à jour un utilisateur
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                phone:
+                  type: string
+      responses:
+        '200':
+          description: Utilisateur mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+    delete:
+      tags:
+        - Utilisateurs
+      summary: Supprimer un utilisateur
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Utilisateur supprimé
+
+  /drivers:
+    get:
+      tags:
+        - Chauffeurs
+      summary: Lister tous les chauffeurs
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: isAvailable
+          in: query
+          schema:
+            type: boolean
+          description: Filtrer par disponibilité
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Liste des chauffeurs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Driver'
+
+    post:
+      tags:
+        - Chauffeurs
+      summary: Créer un nouveau chauffeur
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - licenseNo
+              properties:
+                userId:
+                  type: integer
+                licenseNo:
+                  type: string
+                  example: "DL12345678"
+      responses:
+        '201':
+          description: Chauffeur créé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Driver'
+
+  /drivers/{id}:
+    get:
+      tags:
+        - Chauffeurs
+      summary: Récupérer un chauffeur
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Détails du chauffeur
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Driver'
+
+    put:
+      tags:
+        - Chauffeurs
+      summary: Mettre à jour un chauffeur
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                isAvailable:
+                  type: boolean
+                licenseNo:
+                  type: string
+      responses:
+        '200':
+          description: Chauffeur mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Driver'
+
+  /vehicles:
+    post:
+      tags:
+        - Chauffeurs
+      summary: Ajouter un véhicule à un chauffeur
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - driverId
+                - type
+                - plateNumber
+              properties:
+                driverId:
+                  type: integer
+                type:
+                  type: string
+                  enum: [BIKE, MOTORBIKE, CAR, TRUCK]
+                plateNumber:
+                  type: string
+                  example: "AA-001-ABC"
+                color:
+                  type: string
+      responses:
+        '201':
+          description: Véhicule créé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vehicle'
+
+  /vehicles/{id}:
+    get:
+      tags:
+        - Chauffeurs
+      summary: Récupérer un véhicule
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Détails du véhicule
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vehicle'
+
+  /orders:
+    get:
+      tags:
+        - Commandes
+      summary: Lister les commandes
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, CONFIRMED, PICKED_UP, IN_TRANSIT, DELIVERED, CANCELED]
+        - name: userId
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Liste des commandes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Order'
+
+    post:
+      tags:
+        - Commandes
+      summary: Créer une nouvelle commande
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - pickupAddress
+                - deliveryAddress
+                - price
+              properties:
+                userId:
+                  type: integer
+                pickupAddress:
+                  type: string
+                deliveryAddress:
+                  type: string
+                price:
+                  type: number
+                  format: float
+      responses:
+        '201':
+          description: Commande créée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+
+  /orders/{id}:
+    get:
+      tags:
+        - Commandes
+      summary: Récupérer une commande
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Détails de la commande
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+
+    put:
+      tags:
+        - Commandes
+      summary: Mettre à jour le statut d'une commande
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [PENDING, CONFIRMED, PICKED_UP, IN_TRANSIT, DELIVERED, CANCELED]
+      responses:
+        '200':
+          description: Commande mise à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+
+  /deliveries:
+    post:
+      tags:
+        - Livraisons
+      summary: Créer une livraison
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - orderId
+                - driverId
+              properties:
+                orderId:
+                  type: integer
+                driverId:
+                  type: integer
+      responses:
+        '201':
+          description: Livraison créée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Delivery'
+
+  /deliveries/{id}:
+    get:
+      tags:
+        - Livraisons
+      summary: Récupérer une livraison
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Détails de la livraison
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Delivery'
+
+    put:
+      tags:
+        - Livraisons
+      summary: Mettre à jour une livraison
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                startedAt:
+                  type: string
+                  format: date-time
+                endedAt:
+                  type: string
+                  format: date-time
+      responses:
+        '200':
+          description: Livraison mise à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Delivery'
+
+  /tracking:
+    post:
+      tags:
+        - Suivi GPS
+      summary: Enregistrer la position GPS
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - deliveryId
+                - latitude
+                - longitude
+              properties:
+                deliveryId:
+                  type: integer
+                latitude:
+                  type: number
+                  format: float
+                  example: -18.8792
+                longitude:
+                  type: number
+                  format: float
+                  example: 47.5079
+      responses:
+        '201':
+          description: Position enregistrée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tracking'
+
+  /tracking/delivery/{deliveryId}:
+    get:
+      tags:
+        - Suivi GPS
+      summary: Récupérer l'historique GPS d'une livraison
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: deliveryId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Historique de suivi
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tracking'
+
+  /payments:
+    post:
+      tags:
+        - Paiements
+      summary: Créer un paiement
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - orderId
+                - amount
+                - method
+              properties:
+                orderId:
+                  type: integer
+                amount:
+                  type: number
+                  format: float
+                method:
+                  type: string
+                  enum: [mobile_money, cash, card]
+      responses:
+        '201':
+          description: Paiement créé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+
+  /payments/{id}:
+    get:
+      tags:
+        - Paiements
+      summary: Récupérer un paiement
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Détails du paiement
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+
+    put:
+      tags:
+        - Paiements
+      summary: Mettre à jour le statut du paiement
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [PENDING, PAID, FAILED]
+      responses:
+        '200':
+          description: Paiement mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        role:
+          type: string
+          enum: [ADMIN, CLIENT, DRIVER]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Driver:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        licenseNo:
+          type: string
+        isAvailable:
+          type: boolean
+        user:
+          $ref: '#/components/schemas/User'
+        vehicle:
+          $ref: '#/components/schemas/Vehicle'
+
+    Vehicle:
+      type: object
+      properties:
+        id:
+          type: integer
+        driverId:
+          type: integer
+        type:
+          type: string
+          enum: [BIKE, MOTORBIKE, CAR, TRUCK]
+        plateNumber:
+          type: string
+        color:
+          type: string
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        status:
+          type: string
+          enum: [PENDING, CONFIRMED, PICKED_UP, IN_TRANSIT, DELIVERED, CANCELED]
+        pickupAddress:
+          type: string
+        deliveryAddress:
+          type: string
+        price:
+          type: number
+          format: float
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        user:
+          $ref: '#/components/schemas/User'
+
+    Delivery:
+      type: object
+      properties:
+        id:
+          type: integer
+        orderId:
+          type: integer
+        driverId:
+          type: integer
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        endedAt:
+          type: string
+          format: date-time
+          nullable: true
+        order:
+          $ref: '#/components/schemas/Order'
+        driver:
+          $ref: '#/components/schemas/Driver'
+        tracking:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tracking'
+
+    Tracking:
+      type: object
+      properties:
+        id:
+          type: integer
+        deliveryId:
+          type: integer
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        createdAt:
+          type: string
+          format: date-time
+
+    Payment:
+      type: object
+      properties:
+        id:
+          type: integer
+        orderId:
+          type: integer
+        amount:
+          type: number
+          format: float
+        method:
+          type: string
+          enum: [mobile_money, cash, card]
+        status:
+          type: string
+          enum: [PENDING, PAID, FAILED]
+        paidAt:
+          type: string
+          format: date-time
+          nullable: true
+        order:
+          $ref: '#/components/schemas/Order'
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
