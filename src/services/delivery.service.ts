@@ -7,7 +7,7 @@ interface deliveryData {
     driverId: number
 }
 
-export const insertDeliveryData = async (data: deliveryData) => {
+export const assignDelivery = async (data: deliveryData) => {
     return prisma.delivery.create({
         data: {
             orderId: data.orderId,
