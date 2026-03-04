@@ -31,7 +31,7 @@ app.get("/", (request, response)=>{
             message : "api lancer 🚀",
             version : "1.0.0",
             endpoint : {
-               users: "/api/users",
+               users: "/resto_api/users",
       orders: "/resto_api/orders",
       drivers: "/resto_api/drivers",
       vehicles: "/resto_api/vehicles",
@@ -43,18 +43,5 @@ app.get("/", (request, response)=>{
     )
 })
 
-// Route 404
-app.use((req, res) => {
-  res.status(404).json({ message: "Route not found" });
-});
-
-// Gestion des erreurs globale
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({
-    message: "Internal server error",
-    error: process.env.NODE_ENV === "development" ? err.message : undefined,
-  });
-});
 
 export default app;

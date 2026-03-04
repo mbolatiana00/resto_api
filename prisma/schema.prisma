@@ -14,6 +14,11 @@ model delivery {
   startedAt DateTime?
   endedAt   DateTime?
 
+  // ✅ Relations
+  order    order      @relation(fields: [orderId], references: [id])
+  driver   driver     @relation(fields: [driverId], references: [id])
+  tracking tracking[]
+
   @@index([driverId], map: "Delivery_driverId_fkey")
 }
 
@@ -22,6 +27,11 @@ model driver {
   userId      Int     @unique(map: "Driver_userId_key")
   licenseNo   String
   isAvailable Boolean @default(true)
+
+  // ✅ Relations
+  user      user       @relation(fields: [userId], references: [id])
+  vehicle   vehicle?
+  delivery  delivery[]
 }
 
 model order {
@@ -32,7 +42,12 @@ model order {
   deliveryAddress String
   price           Float
   createdAt       DateTime     @default(now())
-  updatedAt       DateTime
+  updatedAt       DateTime     @updatedAt
+
+  // ✅ Relations
+  user     user      @relation(fields: [userId], references: [id])
+  delivery delivery?
+  payment  payment?
 
   @@index([userId], map: "Order_userId_fkey")
 }
@@ -44,6 +59,9 @@ model payment {
   method  String
   status  payment_status @default(PENDING)
   paidAt  DateTime?
+
+  // ✅ Relation
+  order order @relation(fields: [orderId], references: [id])
 }
 
 model tracking {
@@ -52,6 +70,9 @@ model tracking {
   latitude   Float
   longitude  Float
   createdAt  DateTime @default(now())
+
+  // ✅ Relation
+  delivery delivery @relation(fields: [deliveryId], references: [id])
 
   @@index([deliveryId], map: "Tracking_deliveryId_fkey")
 }
@@ -64,7 +85,11 @@ model user {
   createdAt DateTime  @default(now())
   phone     String?
   role      user_role @default(CLIENT)
-  updatedAt DateTime
+  updatedAt DateTime  @updatedAt
+
+  // ✅ Relations
+  order  order[]
+  driver driver?
 }
 
 model vehicle {
@@ -73,6 +98,9 @@ model vehicle {
   type        vehicle_type
   plateNumber String
   color       String?
+
+  // ✅ Relation
+  driver driver @relation(fields: [driverId], references: [id])
 }
 
 enum order_status {

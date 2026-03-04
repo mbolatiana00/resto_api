@@ -1,96 +1,45 @@
-import { PrismaClient, OrderStatus } from "@prisma/client";
+import { PrismaClient, order_status } from "@prisma/client"; 
 
-const prisma = new PrismaClient()
-
+const prisma = new PrismaClient();
 
 interface createOrderData {
-  userId: number,
-  pickupAddress: string,
-  deliveryAddress: string,
-  price: number
+  userId: number;
+  pickupAddress: string;
+  deliveryAddress: string;
+  price: number;
 }
 
 export const createOrder = async (data: createOrderData) => {
-  return prisma.order.create(
-    {
-      data: {
-        userId: data.userId,
-        pickupAddress: data.pickupAddress,
-        deliveryAddress: data.deliveryAddress,
-        price: data.price
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            phone: true,
-          }
-        }
-      }
-    }
-  )
-}
-/// TOUTES LES ORDER
-export const getAllOrders = async (status?: OrderStatus) => {
-
-  const where = status ? { status: status as OrderStatus } : {}
-
-  return prisma.order.findMany(
-    {
-      where,
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            phone: true,
-          }
-        },
-        delivery: {
-          include: {
-            driver: {
-              include: {
-                user: {
-                  select: {
-                    id: true,
-                    name: true,
-                    phone: true
-                  }
-                },
-                vehicle: true,
-              }
-            }
-          }
-        },
-        payment: true
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-
-    }
-  )
-}
-export const getUserOrders = async (userId: number) => {
-  return prisma.order.findMany({
-    where: {
-      userId,
+  return prisma.order.create({
+    data: {
+      userId: data.userId,
+      pickupAddress: data.pickupAddress,
+      deliveryAddress: data.deliveryAddress,
+      price: data.price,
+      // ✅ updatedAt géré automatiquement par @updatedAt dans le schéma
     },
     include: {
+      user: {
+        select: { id: true, name: true, email: true, phone: true },
+      },
+    },
+  });
+};
+
+export const getAllOrders = async (status?: order_status) => { // ✅ snake_case
+  const where = status ? { status } : {};
+
+  return prisma.order.findMany({
+    where,
+    include: {
+      user: {
+        select: { id: true, name: true, email: true, phone: true },
+      },
       delivery: {
         include: {
           driver: {
             include: {
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  phone: true,
-                },
-              },
+              user: { select: { id: true, name: true, phone: true } },
               vehicle: true,
             },
           },
@@ -98,9 +47,27 @@ export const getUserOrders = async (userId: number) => {
       },
       payment: true,
     },
-    orderBy: {
-      createdAt: "desc",
+    orderBy: { createdAt: "desc" },
+  });
+};
+
+export const getUserOrders = async (userId: number) => {
+  return prisma.order.findMany({
+    where: { userId },
+    include: {
+      delivery: {
+        include: {
+          driver: {
+            include: {
+              user: { select: { id: true, name: true, phone: true } },
+              vehicle: true,
+            },
+          },
+        },
+      },
+      payment: true,
     },
+    orderBy: { createdAt: "desc" },
   });
 };
 
@@ -109,31 +76,18 @@ export const getOrderById = async (id: number) => {
     where: { id },
     include: {
       user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          phone: true,
-        },
+        select: { id: true, name: true, email: true, phone: true },
       },
       delivery: {
         include: {
           driver: {
             include: {
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  phone: true,
-                },
-              },
+              user: { select: { id: true, name: true, phone: true } },
               vehicle: true,
             },
           },
           tracking: {
-            orderBy: {
-              createdAt: "desc",
-            },
+            orderBy: { createdAt: "desc" },
           },
         },
       },
@@ -142,21 +96,13 @@ export const getOrderById = async (id: number) => {
   });
 };
 
-export const updateOrderStatus = async (
-  orderId: number,
-  status: OrderStatus
-) => {
+export const updateOrderStatus = async (orderId: number, status: order_status) => { // ✅ snake_case
   return prisma.order.update({
     where: { id: orderId },
     data: { status },
     include: {
       user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          phone: true,
-        },
+        select: { id: true, name: true, email: true, phone: true },
       },
       delivery: true,
     },
@@ -166,6 +112,6 @@ export const updateOrderStatus = async (
 export const cancelOrder = async (orderId: number) => {
   return prisma.order.update({
     where: { id: orderId },
-    data: { status: "CANCELED" },
+    data: { status: order_status.CANCELED }, // ✅ Utilisation de l'enum
   });
 };

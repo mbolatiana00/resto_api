@@ -41,7 +41,7 @@ export const getAllDrivers = async (isAvailable?: boolean) => {
                 }
             },
             vehicle: true,
-            deliveries: {
+            delivery: {
                 take: 5,
                 orderBy: {
                     startedAt: "desc",
@@ -67,7 +67,7 @@ export const getDriverById = async (id: number) => {
         },
       },
       vehicle: true,
-      deliveries: {
+      delivery: {
         include: {
           order: {
             include: {
@@ -104,7 +104,7 @@ export const getDriverByUserId = async (userId: number) => {
         },
       },
       vehicle: true,
-      deliveries: {
+      delivery: {
         include: {
           order: {
             include: {

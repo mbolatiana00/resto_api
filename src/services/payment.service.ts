@@ -1,4 +1,4 @@
-import { PrismaClient, PaymentStatus } from "@prisma/client";
+import { PrismaClient, payment_status } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -71,7 +71,7 @@ export const getOrderPayment = async (orderId: number) => {
 
 export const updatePaymentStatus = async (
   paymentId: number,
-  status: PaymentStatus
+  status: payment_status
 ) => {
   const data: any = { status };
 
