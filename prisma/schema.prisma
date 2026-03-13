@@ -85,11 +85,24 @@ model user {
   createdAt DateTime  @default(now())
   phone     String?
   role      user_role @default(CLIENT)
+  isVerified Boolean  @default(false)   // 👈 Ajouter ce champ
   updatedAt DateTime  @updatedAt
 
   // ✅ Relations
-  order  order[]
-  driver driver?
+  order     order[]
+  driver    driver?
+  otpTokens OtpToken[]  // 👈 Ajouter cette relation
+}
+model OtpToken {
+  id        Int      @id @default(autoincrement())
+  email     String
+  code      String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  // ✅ Relation avec user
+  user  user   @relation(fields: [email], references: [email], onDelete: Cascade)
 }
 
 model vehicle {

@@ -4,9 +4,13 @@ import {
   createUser,
   findUserByEmail,
   getUserById,
+  updateUserVerified,
 } from "../services/user.service";
 import { generateToken } from "../utils/jwt";
+import { sendOtpEmail } from "../services/emailopt/email.service";
+import { generateOtpCode, saveOtp, verifyOtp } from "../services/emailopt/otp.service";
 
+// ─── REGISTER ────────────────────────────────────────────────────────────────
 export const register = async (req: Request, res: Response) => {
   try {
     const { name, email, password, phone } = req.body;
@@ -16,19 +20,60 @@ export const register = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Email already used" });
     }
 
+    // 1. Créer l'utilisateur (isVerified = false par défaut)
     const user = await createUser(name, email, password, phone);
+
+    // 2. Générer et sauvegarder le code OTP
+    const code = generateOtpCode();
+    await saveOtp(email, code);
+
+    // 3. Envoyer l'email — ✅ ne bloque plus le register si SMTP échoue
+    try {
+      await sendOtpEmail(email, code);
+      console.log(`📧 OTP envoyé à ${email}`);
+    } catch (mailError) {
+      // ⚠️ SMTP pas encore configuré — affiche le code en console pour tester
+      console.error("❌ Erreur SMTP :", mailError);
+      console.log(`🔑 OTP pour test (console) : ${code}`);
+    }
+
     res.status(201).json({
-      message: "User created",
+      message: "User created. Check your email to verify your account.",
       user: {
         id: user.id,
+        name: user.name,
         email: user.email,
+        phone: user.phone ?? "",
+        role: user.role,
+        isVerified: user.isVerified,
       },
     });
   } catch (e) {
+    console.error(e);
     res.status(500).json({ message: "Register error" });
   }
 };
 
+// ─── VERIFY OTP ──────────────────────────────────────────────────────────────
+export const verifyEmail = async (req: Request, res: Response) => {
+  try {
+    const { email, code } = req.body;
+
+    const isValid = await verifyOtp(email, code);
+    if (!isValid) {
+      return res.status(400).json({ message: "Invalid or expired OTP code" });
+    }
+
+    await updateUserVerified(email);
+
+    res.json({ message: "Email verified successfully" });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Verification error" });
+  }
+};
+
+// ─── LOGIN ───────────────────────────────────────────────────────────────────
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
@@ -38,15 +83,16 @@ export const login = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    if (!user.isVerified) {
+      return res.status(403).json({ message: "Please verify your email first" });
+    }
+
     const isValid = await bcrypt.compare(password, user.password);
     if (!isValid) {
       return res.status(401).json({ message: "Invalid password" });
     }
 
-    const token = generateToken({
-      id: user.id,
-      role: user.role,
-    });
+    const token = generateToken({ id: user.id, role: user.role });
 
     res.json({
       token,
@@ -54,7 +100,9 @@ export const login = async (req: Request, res: Response) => {
         id: user.id,
         name: user.name,
         email: user.email,
+        phone: user.phone ?? "",
         role: user.role,
+        isVerified: user.isVerified,
       },
     });
   } catch (e) {
@@ -62,8 +110,18 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
+// ─── PROFILE ─────────────────────────────────────────────────────────────────
 export const profile = async (req: Request, res: Response) => {
-  const userId = (req as any).user.id;
-  const user = await getUserById(userId);
-  res.json(user);
+  try {
+    const userId = (req as any).user.id;
+    const user = await getUserById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json(user);
+  } catch (e) {
+    res.status(500).json({ message: "Profile error" });
+  }
 };

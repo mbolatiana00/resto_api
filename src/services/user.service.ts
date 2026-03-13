@@ -38,3 +38,9 @@ export const getUserById = async (id: number) => {
     },
   });
 };
+export const updateUserVerified = async (email :string) =>{
+  return prisma.user.update({
+    where: { email },
+    data: { isVerified: true },
+  });
+}
