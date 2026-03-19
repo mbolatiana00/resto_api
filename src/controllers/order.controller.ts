@@ -7,7 +7,7 @@ import {
   getAllOrders,
   cancelOrder,
 } from "../services/order.service";
-import { order_status } from "@prisma/client"; // 
+import { OrderStatus } from "@prisma/client"; // 
 
 export const createOrderController = async (req: Request, res: Response) => {
   try {
@@ -30,7 +30,7 @@ export const createOrderController = async (req: Request, res: Response) => {
 export const getAllOrdersController = async (req: Request, res: Response) => {
   try {
     const { status } = req.query;
-    const orders = await getAllOrders(status as order_status); // ✅ snake_case
+    const orders = await getAllOrders(status as OrderStatus); // ✅ snake_case
     res.json({ count: orders.length, orders });
   } catch (error) {
     console.error(error);
@@ -106,7 +106,7 @@ export const cancelOrderController = async (req: Request, res: Response) => {
     }
 
     // ✅ Utilisation de order_status enum pour la comparaison
-    if (([order_status.DELIVERED, order_status.CANCELED] as order_status[]).includes(order.status)) {
+    if (([OrderStatus.DELIVERED, OrderStatus.CANCELED] as OrderStatus[]).includes(order.status)) {
       return res.status(400).json({
         message: "Cannot cancel order with status: " + order.status,
       });

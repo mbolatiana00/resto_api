@@ -20,19 +20,15 @@ export const register = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Email already used" });
     }
 
-    // 1. Créer l'utilisateur (isVerified = false par défaut)
     const user = await createUser(name, email, password, phone);
 
-    // 2. Générer et sauvegarder le code OTP
     const code = generateOtpCode();
-    await saveOtp(email, code);
+    await saveOtp(user.id, code); // ✅ FIX: email → user.id (Int attendu par saveOtp)
 
-    // 3. Envoyer l'email — ✅ ne bloque plus le register si SMTP échoue
     try {
       await sendOtpEmail(email, code);
       console.log(`📧 OTP envoyé à ${email}`);
     } catch (mailError) {
-      // ⚠️ SMTP pas encore configuré — affiche le code en console pour tester
       console.error("❌ Erreur SMTP :", mailError);
       console.log(`🔑 OTP pour test (console) : ${code}`);
     }
@@ -59,7 +55,13 @@ export const verifyEmail = async (req: Request, res: Response) => {
   try {
     const { email, code } = req.body;
 
-    const isValid = await verifyOtp(email, code);
+    // ✅ FIX: récupérer l'utilisateur pour obtenir son id
+    const user = await findUserByEmail(email);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const isValid = await verifyOtp(user.id, code); // ✅ FIX: email → user.id
     if (!isValid) {
       return res.status(400).json({ message: "Invalid or expired OTP code" });
     }

@@ -8,15 +8,15 @@ export const generateOtpCode = (): string => {
 };
 
 // Sauvegarde le code OTP en base
-export const saveOtp = async (email: string, code: string) => {
+export const saveOtp = async (userId: number, code: string) => {
   // Supprime les anciens OTP de cet email
-  await prisma.otpToken.deleteMany({ where: { email } });
+  await prisma.otpToken.deleteMany({ where: { userId } });
 
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // +10 minutes
 
   return prisma.otpToken.create({
     data: {
-      email,
+      userId,
       code,
       expiresAt,
     },
@@ -24,10 +24,10 @@ export const saveOtp = async (email: string, code: string) => {
 };
 
 // Vérifie le code OTP
-export const verifyOtp = async (email: string, code: string) => {
+export const verifyOtp = async (userId: number, code: string) => {
   const otp = await prisma.otpToken.findFirst({
     where: {
-      email,
+      userId,
       code,
       used: false,
       expiresAt: { gt: new Date() }, // pas encore expiré

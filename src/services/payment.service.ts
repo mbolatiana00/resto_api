@@ -1,11 +1,11 @@
-import { PrismaClient, payment_status } from "@prisma/client";
+import { PrismaClient, PaymentStatus, PaymentMethod } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 interface CreatePaymentData {
   orderId: number;
   amount: number;
-  method: string;
+  method: PaymentMethod; // ✅ FIX: string → PaymentMethod (enum Prisma)
 }
 
 export const createPayment = async (data: CreatePaymentData) => {
@@ -13,7 +13,8 @@ export const createPayment = async (data: CreatePaymentData) => {
     data: {
       orderId: data.orderId,
       amount: data.amount,
-      method: data.method,
+      method: data.method, // ✅ FIX: "PaymentMethod" → "method" (nom du champ dans le schéma)
+                           // ✅ FIX: "metPaymentMethod" → "method" (nom de la propriété corrigé)
     },
     include: {
       order: {
@@ -62,7 +63,7 @@ export const getOrderPayment = async (orderId: number) => {
           status: true,
           pickupAddress: true,
           deliveryAddress: true,
-          price: true,
+          totalPrice: true,
         },
       },
     },
@@ -71,12 +72,12 @@ export const getOrderPayment = async (orderId: number) => {
 
 export const updatePaymentStatus = async (
   paymentId: number,
-  status: payment_status
+  status: PaymentStatus
 ) => {
-  const data: any = { status };
+  const data: { status: PaymentStatus; paidAt?: Date } = { status }; // ✅ FIX: any → type explicite
 
   // Si le paiement est marqué comme payé, enregistrer la date
-  if (status === "PAID") {
+  if (status === PaymentStatus.PAID) { // ✅ FIX: string "PAID" → enum PaymentStatus.PAID
     data.paidAt = new Date();
   }
 

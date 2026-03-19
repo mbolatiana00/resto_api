@@ -1,4 +1,4 @@
-import { PrismaClient, order_status } from "@prisma/client"; 
+import { PrismaClient, OrderStatus } from "@prisma/client"; 
 
 const prisma = new PrismaClient();
 
@@ -15,7 +15,7 @@ export const createOrder = async (data: createOrderData) => {
       userId: data.userId,
       pickupAddress: data.pickupAddress,
       deliveryAddress: data.deliveryAddress,
-      price: data.price,
+      totalPrice: data.price,
       // ✅ updatedAt géré automatiquement par @updatedAt dans le schéma
     },
     include: {
@@ -26,7 +26,7 @@ export const createOrder = async (data: createOrderData) => {
   });
 };
 
-export const getAllOrders = async (status?: order_status) => { // ✅ snake_case
+export const getAllOrders = async (status?: OrderStatus) => { // ✅ snake_case
   const where = status ? { status } : {};
 
   return prisma.order.findMany({
@@ -96,7 +96,7 @@ export const getOrderById = async (id: number) => {
   });
 };
 
-export const updateOrderStatus = async (orderId: number, status: order_status) => { // ✅ snake_case
+export const updateOrderStatus = async (orderId: number, status: OrderStatus) => { // ✅ snake_case
   return prisma.order.update({
     where: { id: orderId },
     data: { status },
@@ -112,6 +112,6 @@ export const updateOrderStatus = async (orderId: number, status: order_status) =
 export const cancelOrder = async (orderId: number) => {
   return prisma.order.update({
     where: { id: orderId },
-    data: { status: order_status.CANCELED }, // ✅ Utilisation de l'enum
+    data: { status: OrderStatus.CANCELED }, // ✅ Utilisation de l'enum
   });
 };

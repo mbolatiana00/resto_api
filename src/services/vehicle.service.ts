@@ -1,16 +1,16 @@
-import { PrismaClient, vehicle_type } from "@prisma/client";
+import { PrismaClient, VehicleType } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 interface CreateVehicleData {
   driverId: number;
-  type: vehicle_type;
+  type: VehicleType;
   plateNumber: string;
   color?: string;
 }
 
 interface UpdateVehicleData {
-  type?: vehicle_type;
+  type?: VehicleType;
   plateNumber?: string;
   color?: string;
 }

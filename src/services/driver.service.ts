@@ -1,58 +1,58 @@
-import { Prisma, PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 
-interface createDriverData {
-    userId: number,
-    licenseNo: string
+interface CreateDriverData {
+  userId: number;
+  licenseNo: string;
 }
-const prisma = new PrismaClient()
 
-export const createDriver = async (data: createDriverData) => {
-    return prisma.driver.create({
-        data: {
-            userId: data.userId,
-            licenseNo: data.licenseNo
-        },
-        include: {
-            user: {
-                select: {
-                    id: true,
-                    name: true,
-                    email: true,
-                    phone: true,
-                    role: true
-                }
-            }
-        },
+const prisma = new PrismaClient();
 
-    })
+export const createDriver = async (data: CreateDriverData) => {
+  return prisma.driver.create({
+    data: {
+      userId: data.userId,
+      licenseNo: data.licenseNo,
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          role: true,
+        },
+      },
+    },
+  });
 };
 
 export const getAllDrivers = async (isAvailable?: boolean) => {
-    const where = isAvailable !== undefined ? { isAvailable } : {};
-    return prisma.driver.findMany({
-        where,
+  const where = isAvailable !== undefined ? { isAvailable } : {};
+  return prisma.driver.findMany({
+    where,
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+        },
+      },
+      vehicle: true,
+      deliveries: {         // ✅ FIX: "delivery" → "deliveries" (nom du champ dans le schéma)
+        take: 5,
+        orderBy: {
+          startedAt: "desc",
+        },
         include: {
-            user: {
-                select: {
-                    id: true,
-                    name: true,
-                    email: true,
-                    phone: true,
-                }
-            },
-            vehicle: true,
-            delivery: {
-                take: 5,
-                orderBy: {
-                    startedAt: "desc",
-                },
-                include: {
-                    order: true,
-                },
-            },
-        }
-    })
-}
+          order: true,
+        },
+      },
+    },
+  });
+};
 
 export const getDriverById = async (id: number) => {
   return prisma.driver.findUnique({
@@ -67,7 +67,7 @@ export const getDriverById = async (id: number) => {
         },
       },
       vehicle: true,
-      delivery: {
+      deliveries: {         // ✅ FIX: "delivery" → "deliveries"
         include: {
           order: {
             include: {
@@ -89,8 +89,6 @@ export const getDriverById = async (id: number) => {
   });
 };
 
-
-
 export const getDriverByUserId = async (userId: number) => {
   return prisma.driver.findUnique({
     where: { userId },
@@ -104,7 +102,7 @@ export const getDriverByUserId = async (userId: number) => {
         },
       },
       vehicle: true,
-      delivery: {
+      deliveries: {         // ✅ FIX: "delivery" → "deliveries"
         include: {
           order: {
             include: {
@@ -148,13 +146,14 @@ export const updateDriverAvailability = async (
 };
 
 export const deleteDriver = async (driverId: number) => {
-  // Supprimer d'abord le véhicule s'il existe
-  await prisma.vehicle.deleteMany({
-    where: { driverId },
-  });
+  // ✅ FIX: Utiliser une transaction pour garantir l'atomicité
+  return prisma.$transaction(async (tx) => {
+    await tx.vehicle.deleteMany({
+      where: { driverId },
+    });
 
-  // Puis supprimer le livreur
-  return prisma.driver.delete({
-    where: { id: driverId },
+    return tx.driver.delete({
+      where: { id: driverId },
+    });
   });
 };
