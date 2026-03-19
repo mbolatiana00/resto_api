@@ -4,6 +4,7 @@ const prisma = new PrismaClient();
 
 interface createOrderData {
   userId: number;
+  restaurantId : number;
   pickupAddress: string;
   deliveryAddress: string;
   price: number;
@@ -13,6 +14,7 @@ export const createOrder = async (data: createOrderData) => {
   return prisma.order.create({
     data: {
       userId: data.userId,
+      restaurantId : data.restaurantId,
       pickupAddress: data.pickupAddress,
       deliveryAddress: data.deliveryAddress,
       totalPrice: data.price,

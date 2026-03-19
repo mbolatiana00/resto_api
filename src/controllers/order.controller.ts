@@ -18,7 +18,10 @@ export const createOrderController = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    const order = await createOrder({ userId, pickupAddress, deliveryAddress, price });
+    const order = await createOrder({
+      userId, pickupAddress, deliveryAddress, price,
+      restaurantId: 0
+    });
 
     res.status(201).json({ message: "Order created successfully", order });
   } catch (error) {
