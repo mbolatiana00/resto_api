@@ -42,8 +42,9 @@ app.get("/", (request, response)=>{
         }
     )
 })
-/** 
+
 const ws = new WebSocket("http://localhost:5000");
-ws.onmessage = (e) => { const { status, driverLocation, estimatedArrival } = JSON.parse(e.data); console.log('Status:', status); console.log('Location:', driverLocation); };
-*/
+ws.onmessage = (e) => { const { status, driverLocation, estimatedArrival } = JSON.parse(e.data); console.log('Status:', status);
+ console.log('Location:', driverLocation); };
+
 export default app;

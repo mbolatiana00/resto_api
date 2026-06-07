@@ -1,16 +1,11 @@
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "mysql"
-  url = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
-
-// ─────────────────────────────────────────
-// USERS & AUTH
-// ─────────────────────────────────────────
 
 model User {
   id         Int        @id @default(autoincrement())
@@ -22,12 +17,11 @@ model User {
   isVerified Boolean    @default(false)
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
-
-  // Relations
-  orders    Order[]
-  driver    Driver?
-  otpTokens OtpToken[]
-  cart      Cart?       // ✅ AJOUT: un seul panier actif par utilisateur
+  cart       Cart?
+  driver     Driver?
+  orders     Order[]
+  otpTokens  OtpToken[]
+  notifications Notification[]
 }
 
 model OtpToken {
@@ -37,105 +31,84 @@ model OtpToken {
   expiresAt DateTime
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
 
-// ─────────────────────────────────────────
-// RESTAURANT & MENU
-// ─────────────────────────────────────────
-
 model Restaurant {
-  id          Int      @id @default(autoincrement())
-  name        String
-  address     String
-  phone       String?
-  imageUrl    String?
-  latitude    Float?
-  longitude   Float?
-  isOpen      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        Int        @id @default(autoincrement())
+  name      String
+  address   String
+  phone     String?
+  imageUrl  String?
+  latitude  Float?
+  longitude Float?
+  isOpen    Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  carts     Cart[]
+  menuItems MenuItem[]
+  orders    Order[]
 
-  // Relations
-  menuItems   MenuItem[]
-  orders      Order[]
-  carts       Cart[]     // ✅ AJOUT — relation inverse obligatoire
-  
   @@index([isOpen])
 }
 
 model MenuItem {
-  id           Int        @id @default(autoincrement())
+  id           Int         @id @default(autoincrement())
   restaurantId Int
   name         String
   description  String?
   price        Float
   imageUrl     String?
-  isAvailable  Boolean    @default(true)
-  category     String?    // ex: "Entrée", "Plat", "Dessert", "Boisson"
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-
-  // Relations
+  isAvailable  Boolean     @default(true)
+  category     String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  cartItems    CartItem[]
   restaurant   Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  cartItems    CartItem[]  // ✅ Un article de menu peut être dans plusieurs paniers
-  orderItems   OrderItem[] // ✅ Un article de menu peut être dans plusieurs commandes
+  orderItems   OrderItem[]
 
   @@index([restaurantId])
   @@index([isAvailable])
 }
 
-// ─────────────────────────────────────────
-// CART
-// ─────────────────────────────────────────
-
 model Cart {
-  id           Int        @id @default(autoincrement())
-  userId       Int        @unique // ✅ Un seul panier actif par utilisateur
-  // ✅ Le panier est lié à un restaurant — on ne peut pas mixer deux restaurants
+  id           Int         @id @default(autoincrement())
+  userId       Int         @unique
   restaurantId Int?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-
-  // Relations
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
   restaurant   Restaurant? @relation(fields: [restaurantId], references: [id])
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   items        CartItem[]
 
   @@index([userId])
+  @@index([restaurantId], map: "Cart_restaurantId_fkey")
 }
 
 model CartItem {
-  id           Int      @id @default(autoincrement())
-  cartId       Int
-  menuItemId   Int      // ✅ Lié au vrai MenuItem (pas juste un nom string)
-  quantity     Int      @default(1)
-  createdAt    DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  cartId     Int
+  menuItemId Int
+  quantity   Int      @default(1)
+  createdAt  DateTime @default(now())
+  cart       Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
 
-  // Relations
-  cart         Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  menuItem     MenuItem @relation(fields: [menuItemId], references: [id])
-
-  @@unique([cartId, menuItemId]) // ✅ Pas de doublon — on incrémente la quantité
+  @@unique([cartId, menuItemId])
   @@index([cartId])
+  @@index([menuItemId], map: "CartItem_menuItemId_fkey")
 }
-
-// ─────────────────────────────────────────
-// DRIVER & VEHICLE
-// ─────────────────────────────────────────
 
 model Driver {
   id          Int        @id @default(autoincrement())
   userId      Int        @unique
   licenseNo   String     @unique
   isAvailable Boolean    @default(true)
-
+  deliveries  Delivery[]
   user        User       @relation(fields: [userId], references: [id])
   vehicle     Vehicle?
-  deliveries  Delivery[]
 }
 
 model Vehicle {
@@ -145,18 +118,13 @@ model Vehicle {
   plateNumber String      @unique
   color       String?
   year        Int?
-
   driver      Driver      @relation(fields: [driverId], references: [id])
 }
-
-// ─────────────────────────────────────────
-// ORDER & ITEMS
-// ─────────────────────────────────────────
 
 model Order {
   id              Int         @id @default(autoincrement())
   userId          Int
-  restaurantId    Int         // ✅ AJOUT: commande liée à un restaurant
+  restaurantId    Int
   status          OrderStatus @default(PENDING)
   pickupAddress   String
   deliveryAddress String
@@ -168,12 +136,10 @@ model Order {
   note            String?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
-
-  // Relations
-  user            User        @relation(fields: [userId], references: [id])
-  restaurant      Restaurant  @relation(fields: [restaurantId], references: [id]) // ✅ AJOUT
-  items           OrderItem[]
   delivery        Delivery?
+  restaurant      Restaurant  @relation(fields: [restaurantId], references: [id])
+  user            User        @relation(fields: [userId], references: [id])
+  items           OrderItem[]
   payment         Payment?
 
   @@index([userId])
@@ -182,37 +148,52 @@ model Order {
 }
 
 model OrderItem {
-  id           Int      @id @default(autoincrement())
-  orderId      Int
-  menuItemId   Int?     // ✅ AJOUT: lien vers le MenuItem d'origine (nullable car le plat peut être supprimé)
-  name         String   // Snapshot du nom au moment de la commande
-  quantity     Int
-  unitPrice    Float    // Snapshot du prix au moment de la commande
-
-  // Relations
-  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  menuItem     MenuItem? @relation(fields: [menuItemId], references: [id], onDelete: SetNull)
+  id         Int       @id @default(autoincrement())
+  orderId    Int
+  menuItemId Int?
+  name       String
+  quantity   Int
+  unitPrice  Float
+  menuItem   MenuItem? @relation(fields: [menuItemId], references: [id])
+  order      Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
+  @@index([menuItemId], map: "OrderItem_menuItemId_fkey")
 }
 
-// ─────────────────────────────────────────
-// DELIVERY & TRACKING
-// ─────────────────────────────────────────
-
 model Delivery {
-  id         Int            @id @default(autoincrement())
-  orderId    Int            @unique
-  driverId   Int
-  startedAt  DateTime?
-  endedAt    DateTime?
-  status     DeliveryStatus @default(ASSIGNED)
-
-  order      Order          @relation(fields: [orderId], references: [id])
-  driver     Driver         @relation(fields: [driverId], references: [id])
-  tracking   Tracking[]
+  id        Int            @id @default(autoincrement())
+  orderId   Int            @unique
+  driverId  Int
+  startedAt DateTime?
+  endedAt   DateTime?
+  status    DeliveryStatus @default(ASSIGNED)
+  driver    Driver         @relation(fields: [driverId], references: [id])
+  order     Order          @relation(fields: [orderId], references: [id])
+  tracking  Tracking[]
 
   @@index([driverId])
+}
+
+model Notification {
+  id          Int  @id @default(autoincrement())
+  userId      Int 
+  title       String
+  message     String
+  type        NotificationType
+  status      NotificationStatus
+  read        Boolean         @default(false)
+  data        Json?
+  sentAt      DateTime?   
+  readAt      DateTime?
+  createdAt   DateTime?      @default(now())
+  updatedAt   DateTime?      @updatedAt
+
+  user        User @relation(fields: [userId], references : [id], onDelete : Cascade)
+  @@index([userId])
+  @@index([status])
+  @@index([read])
+  @@map("notification")
 }
 
 model Tracking {
@@ -222,15 +203,10 @@ model Tracking {
   longitude  Float
   accuracy   Float?
   createdAt  DateTime @default(now())
-
   delivery   Delivery @relation(fields: [deliveryId], references: [id])
 
   @@index([deliveryId, createdAt])
 }
-
-// ─────────────────────────────────────────
-// PAYMENT
-// ─────────────────────────────────────────
 
 model Payment {
   id      Int           @id @default(autoincrement())
@@ -239,13 +215,8 @@ model Payment {
   method  PaymentMethod
   status  PaymentStatus @default(PENDING)
   paidAt  DateTime?
-
   order   Order         @relation(fields: [orderId], references: [id])
 }
-
-// ─────────────────────────────────────────
-// ENUMS
-// ─────────────────────────────────────────
 
 enum UserRole {
   ADMIN
@@ -290,4 +261,24 @@ enum PaymentStatus {
   PAID
   FAILED
   REFUNDED
+}
+enum NotificationType {
+ ORDER_CREATED
+ ORDER_ACCEPTED
+ ORDER_PREPARING
+ ORDER_READY
+ ORDER_DELIVERING
+ ORDER_DELIVERED
+
+ PAYMENT_SUCCESS
+ PAYMENT_FAILED
+
+ DRIVER_ASSIGNED
+ PROMOTION
+ SYSTEM
+}
+enum NotificationStatus{
+  PENDING
+  SENT 
+  FAILED
 }

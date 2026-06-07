@@ -12,15 +12,18 @@ import { OrderStatus } from "@prisma/client"; //
 export const createOrderController = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.id;
-    const { pickupAddress, deliveryAddress, price } = req.body;
+    const { pickupAddress, deliveryAddress, price, restaurantId } = req.body; // ✅ ajoute restaurantId
 
-    if (!pickupAddress || !deliveryAddress || !price) {
+    if (!pickupAddress || !deliveryAddress || !price || !restaurantId) { // ✅ vérifie restaurantId
       return res.status(400).json({ message: "Missing required fields" });
     }
 
     const order = await createOrder({
-      userId, pickupAddress, deliveryAddress, price,
-      restaurantId: 0
+      userId,
+      pickupAddress,
+      deliveryAddress,
+      price,
+      restaurantId: Number(restaurantId), // ✅ lu depuis req.body
     });
 
     res.status(201).json({ message: "Order created successfully", order });

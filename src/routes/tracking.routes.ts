@@ -3,21 +3,19 @@ import {
   addTrackingPointController,
   getDeliveryTrackingController,
   getLatestTrackingController,
+  webhookLocationController,
+  getLastLocationController,
 } from "../controllers/tracking.controller";
 import { authMiddleware } from "../middlewares/auth.middleware";
-import { driverMiddleware } from "../middlewares/role.middleware";
 
 const router = Router();
 
-// Routes pour les livreurs
-router.post(
-  "/",
-  authMiddleware,
-  driverMiddleware,
-  addTrackingPointController
-);
+// ✅ Routes webhook en PREMIER (sans auth — appelées par n8n)
+router.post("/webhook/location", webhookLocationController);
+router.get("/webhook/last/:deliveryId", authMiddleware, getLastLocationController);
 
-// Routes accessibles à tous les utilisateurs authentifiés
+// ✅ Routes existantes
+router.post("/", authMiddleware, addTrackingPointController);
 router.get("/:deliveryId", authMiddleware, getDeliveryTrackingController);
 router.get("/:deliveryId/latest", authMiddleware, getLatestTrackingController);
 

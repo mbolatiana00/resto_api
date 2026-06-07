@@ -93,3 +93,60 @@ export const getLatestTrackingController = async (
     res.status(500).json({ message: "Error fetching latest tracking" });
   }
 };
+// ✅ Reçoit position depuis n8n webhook (sans auth)
+export const webhookLocationController = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const { deliveryId, latitude, longitude, accuracy, userId, role } = req.body;
+
+    if (!latitude || !longitude) {
+      return res.status(400).json({ message: "Missing latitude or longitude" });
+    }
+
+    console.log(`📍 Position reçue [${role || "UNKNOWN"}] → lat:${latitude} lng:${longitude} userId:${userId}`);
+
+    // Si deliveryId valide → sauvegarde en base
+    if (deliveryId && deliveryId > 0) {
+      const trackingPoint = await addTrackingPoint({
+        deliveryId : Number(deliveryId),
+        latitude   : Number(latitude),
+        longitude  : Number(longitude),
+      });
+      return res.status(201).json({ message: "Position saved", tracking: trackingPoint });
+    }
+
+    // Sinon → juste logger la position (utilisateur sans livraison active)
+    res.status(200).json({
+      message   : "Position received",
+      latitude,
+      longitude,
+      userId,
+      role
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error processing location" });
+  }
+};
+
+// ✅ Dernière position — Android poll toutes les 30s
+export const getLastLocationController = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const { deliveryId } = req.params;
+
+    const latestTracking = await getLatestTrackingPoint(parseInt(deliveryId));
+
+    if (!latestTracking) {
+      return res.status(404).json({ message: "No location found" });
+    }
+
+    res.json(latestTracking);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching location" });
+  }
+};
