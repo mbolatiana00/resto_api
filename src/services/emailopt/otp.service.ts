@@ -1,6 +1,5 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../lib/prisma"; // chemin relatif depuis lib/prisma.t/
 
-const prisma = new PrismaClient();
 
 // Génère un code à 6 chiffres
 export const generateOtpCode = (): string => {

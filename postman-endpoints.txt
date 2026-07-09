@@ -1,0 +1,51 @@
+Resto API - Endpoints tested
+============================
+
+Base URL: http://localhost:3000
+
+1) GET /
+- Description: health check
+- Response: 200 OK
+
+2) POST /resto_api/users/register
+- Body:
+  {
+    "name": "Test User",
+    "email": "testuser@example.com",
+    "password": "123456",
+    "phone": "0700000000"
+  }
+- Response: 201 Created
+
+3) POST /resto_api/users/login
+- Body:
+  {
+    "email": "testuser@example.com",
+    "password": "123456"
+  }
+- Response: 200 OK after email verification
+
+4) POST /resto_api/users/verify-email
+- Body:
+  {
+    "email": "testuser@example.com",
+    "code": "621017"
+  }
+- Response: 200 OK
+
+5) GET /resto_api/users/me
+- Auth: Bearer token from login
+- Response: 200 OK
+
+6) GET /resto_api/orders/user/1
+- Auth: Bearer token from login
+- Response: 200 OK, returns {"count":0,"orders":[]}
+
+7) GET /resto_api/orders
+- Auth: Bearer token from login
+- Response: 403 Forbidden (admin only)
+
+Notes:
+- The authentication flow works correctly.
+- The admin-only order list endpoint correctly rejects a client token.
+- The user-scoped orders endpoint responds successfully.

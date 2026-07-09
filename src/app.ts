@@ -6,6 +6,8 @@ import vehicleRoutes from "./routes/vehicle.routes";
 import deliveryRoutes from "./routes/delivery.routes";
 import trackingRoutes from "./routes/tracking.routes";
 import paymentRoutes from "./routes/payment.routes"
+import restaurantRoutes from "./routes/restaurant.routes";
+import notificationRoutes from "./routes/notification.routes";
 const app = express();
 // Middlewares
 
@@ -24,6 +26,8 @@ app.use("/resto_api/vehicles", vehicleRoutes);
 app.use("/resto_api/deliveries", deliveryRoutes);
 app.use("/resto_api/tracking", trackingRoutes);
 app.use("/resto_api/payments", paymentRoutes);
+app.use("/resto_api/restaurants", restaurantRoutes);
+app.use("/resto_api", notificationRoutes);
 //// Route de test 
 app.get("/", (request, response)=>{
     response.json(

@@ -1,6 +1,6 @@
-import { PrismaClient, VehicleType } from "@prisma/client";
+import { prisma} from "../lib/prisma"; // chemin relatif depuis lib/prisma.ts
+import {VehicleType} from "../generated/prisma/enums"; // chemin relatif depuis generated/prisma/enums.ts
 
-const prisma = new PrismaClient();
 
 interface CreateVehicleData {
   driverId: number;

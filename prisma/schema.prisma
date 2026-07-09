@@ -1,26 +1,27 @@
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "mysql"
-  url      = env("DATABASE_URL")
 }
 
 model User {
-  id         Int        @id @default(autoincrement())
-  name       String
-  email      String     @unique
-  password   String
-  phone      String?
-  role       UserRole   @default(CLIENT)
-  isVerified Boolean    @default(false)
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
-  cart       Cart?
-  driver     Driver?
-  orders     Order[]
-  otpTokens  OtpToken[]
+  id            Int            @id @default(autoincrement())
+  name          String
+  email         String         @unique
+  password      String
+  phone         String?
+  role          UserRole       @default(CLIENT)
+  isVerified    Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  cart          Cart?
+  coupons       Coupon[]
+  driver        Driver?
+  orders        Order[]
+  otpTokens     OtpToken[]
   notifications Notification[]
 }
 
@@ -48,6 +49,7 @@ model Restaurant {
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
   carts     Cart[]
+  coupons   Coupon[]
   menuItems MenuItem[]
   orders    Order[]
 
@@ -136,12 +138,16 @@ model Order {
   note            String?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
+  couponId        Int?        @unique
+  discountAmount  Float       @default(0)
   delivery        Delivery?
+  coupon          Coupon?     @relation("CouponUsedOnOrder", fields: [couponId], references: [id])
   restaurant      Restaurant  @relation(fields: [restaurantId], references: [id])
   user            User        @relation(fields: [userId], references: [id])
   items           OrderItem[]
   payment         Payment?
 
+  @@index([couponId])
   @@index([userId])
   @@index([status])
   @@index([restaurantId])
@@ -176,20 +182,20 @@ model Delivery {
 }
 
 model Notification {
-  id          Int  @id @default(autoincrement())
-  userId      Int 
-  title       String
-  message     String
-  type        NotificationType
-  status      NotificationStatus
-  read        Boolean         @default(false)
-  data        Json?
-  sentAt      DateTime?   
-  readAt      DateTime?
-  createdAt   DateTime?      @default(now())
-  updatedAt   DateTime?      @updatedAt
+  id        Int                @id @default(autoincrement())
+  userId    Int
+  title     String
+  message   String
+  type      NotificationType
+  status    NotificationStatus
+  read      Boolean            @default(false)
+  data      String?            @db.LongText
+  sentAt    DateTime?
+  readAt    DateTime?
+  createdAt DateTime?          @default(now())
+  updatedAt DateTime?          @updatedAt
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  user        User @relation(fields: [userId], references : [id], onDelete : Cascade)
   @@index([userId])
   @@index([status])
   @@index([read])
@@ -216,6 +222,26 @@ model Payment {
   status  PaymentStatus @default(PENDING)
   paidAt  DateTime?
   order   Order         @relation(fields: [orderId], references: [id])
+}
+
+model Coupon {
+  id              Int          @id @default(autoincrement())
+  code            String       @unique
+  userId          Int
+  restaurantId    Int
+  discountPercent Int          @default(10)
+  status          CouponStatus @default(ACTIVE)
+  expiresAt       DateTime
+  usedAt          DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  restaurant      Restaurant   @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order           Order?       @relation("CouponUsedOnOrder")
+
+  @@index([userId])
+  @@index([restaurantId])
+  @@index([status])
 }
 
 enum UserRole {
@@ -262,23 +288,29 @@ enum PaymentStatus {
   FAILED
   REFUNDED
 }
+
 enum NotificationType {
- ORDER_CREATED
- ORDER_ACCEPTED
- ORDER_PREPARING
- ORDER_READY
- ORDER_DELIVERING
- ORDER_DELIVERED
-
- PAYMENT_SUCCESS
- PAYMENT_FAILED
-
- DRIVER_ASSIGNED
- PROMOTION
- SYSTEM
+  ORDER_CREATED
+  ORDER_ACCEPTED
+  ORDER_PREPARING
+  ORDER_READY
+  ORDER_DELIVERING
+  ORDER_DELIVERED
+  PAYMENT_SUCCESS
+  PAYMENT_FAILED
+  DRIVER_ASSIGNED
+  PROMOTION
+  SYSTEM
 }
-enum NotificationStatus{
+
+enum NotificationStatus {
   PENDING
-  SENT 
+  SENT
   FAILED
+}
+
+enum CouponStatus {
+  ACTIVE
+  USED
+  EXPIRED
 }

@@ -4,11 +4,16 @@ import {
   createUser,
   findUserByEmail,
   getUserById,
+  updateUserPassword,
   updateUserVerified,
 } from "../services/user.service";
 import { generateToken } from "../utils/jwt";
 import { sendOtpEmail } from "../services/emailopt/email.service";
-import { generateOtpCode, saveOtp, verifyOtp } from "../services/emailopt/otp.service";
+import {
+  generateOtpCode,
+  saveOtp,
+  verifyOtp,
+} from "../services/emailopt/otp.service";
 
 // ─── REGISTER ────────────────────────────────────────────────────────────────
 export const register = async (req: Request, res: Response) => {
@@ -23,7 +28,7 @@ export const register = async (req: Request, res: Response) => {
     const user = await createUser(name, email, password, phone);
 
     const code = generateOtpCode();
-    await saveOtp(user.id, code); // ✅ FIX: email → user.id (Int attendu par saveOtp)
+    await saveOtp(user.id, code);
 
     try {
       await sendOtpEmail(email, code);
@@ -86,7 +91,9 @@ export const login = async (req: Request, res: Response) => {
     }
 
     if (!user.isVerified) {
-      return res.status(403).json({ message: "Please verify your email first" });
+      return res
+        .status(403)
+        .json({ message: "Please verify your email first" });
     }
 
     const isValid = await bcrypt.compare(password, user.password);
@@ -125,5 +132,50 @@ export const profile = async (req: Request, res: Response) => {
     res.json(user);
   } catch (e) {
     res.status(500).json({ message: "Profile error" });
+  }
+};
+
+export const forgotPassword = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    const user = await findUserByEmail(email);
+
+    if (!user) {
+      return res.status(404).json({ message: "user introuvable" });
+    }
+    const code = generateOtpCode();
+    await saveOtp(user.id, code);
+
+    try {
+      await sendOtpEmail(email, code);
+      console.log(`📧 OTP de réinitialisation envoyé à ${email}`);
+    } catch (error) {
+      console.error("❌ Erreur SMTP :", error);
+      console.log(`🔑 OTP pour test (console) : ${code}`);
+    }
+    res.json({ message: "Reset code sent to your email" });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Forgot password error" });
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response) => {
+  try {
+    const { email, code, newPassword } = req.body;
+    const user = await findUserByEmail(email);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const isValid = await verifyOtp(user.id, code);
+    if (!isValid) {
+      return res.status(400).json({ message: "Invalid or expired OTP code" });
+    }
+    await updateUserPassword(user.id, newPassword);
+    res.json({ message: "Password reset successfully" });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Reset password error" });
   }
 };

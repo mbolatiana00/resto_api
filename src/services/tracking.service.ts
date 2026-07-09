@@ -1,6 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma} from "../lib/prisma"; // chemin relatif depuis lib/prisma.ts
 
 interface AddTrackingPointData {
   deliveryId: number;

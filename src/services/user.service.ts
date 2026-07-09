@@ -1,7 +1,7 @@
-import { PrismaClient } from "@prisma/client"
+import { prisma } from "../lib/prisma"; // chemin relatif depuis lib/prisma.ts
 import bcrypt from "bcryptjs";
 
-const prisma = new PrismaClient();
+
 
 export const createUser = async (
   name: string,
@@ -44,3 +44,10 @@ export const updateUserVerified = async (email :string) =>{
     data: { isVerified: true },
   });
 }
+export const updateUserPassword = async (id: number, newPassword: string) => {
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  return prisma.user.update({
+    where: { id },
+    data: { password: hashedPassword },
+  });
+};

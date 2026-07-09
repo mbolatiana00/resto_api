@@ -7,7 +7,7 @@ import {
   getAllOrders,
   cancelOrder,
 } from "../services/order.service";
-import { OrderStatus } from "@prisma/client"; // 
+import { OrderStatus } from "../generated/prisma/enums"; // 
 
 export const createOrderController = async (req: Request, res: Response) => {
   try {

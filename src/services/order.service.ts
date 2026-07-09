@@ -1,6 +1,5 @@
-import { PrismaClient, OrderStatus } from "@prisma/client"; 
-
-const prisma = new PrismaClient();
+import { prisma } from "../lib/prisma";
+import { OrderStatus } from "../generated/prisma/enums";
 
 interface createOrderData {
   userId: number;
@@ -28,7 +27,7 @@ export const createOrder = async (data: createOrderData) => {
   });
 };
 
-export const getAllOrders = async (status?: OrderStatus) => { // ✅ snake_case
+export const getAllOrders = async (status?: OrderStatus) => {
   const where = status ? { status } : {};
 
   return prisma.order.findMany({
@@ -98,7 +97,7 @@ export const getOrderById = async (id: number) => {
   });
 };
 
-export const updateOrderStatus = async (orderId: number, status: OrderStatus) => { // ✅ snake_case
+export const updateOrderStatus = async (orderId: number, status: OrderStatus) => {
   return prisma.order.update({
     where: { id: orderId },
     data: { status },
@@ -114,6 +113,6 @@ export const updateOrderStatus = async (orderId: number, status: OrderStatus) =>
 export const cancelOrder = async (orderId: number) => {
   return prisma.order.update({
     where: { id: orderId },
-    data: { status: OrderStatus.CANCELED }, // ✅ Utilisation de l'enum
+    data: { status: OrderStatus.CANCELED },
   });
 };

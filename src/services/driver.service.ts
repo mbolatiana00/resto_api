@@ -1,11 +1,9 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../lib/prisma";
 
 interface CreateDriverData {
   userId: number;
   licenseNo: string;
 }
-
-const prisma = new PrismaClient();
 
 export const createDriver = async (data: CreateDriverData) => {
   return prisma.driver.create({
@@ -41,7 +39,7 @@ export const getAllDrivers = async (isAvailable?: boolean) => {
         },
       },
       vehicle: true,
-      deliveries: {         // ✅ FIX: "delivery" → "deliveries" (nom du champ dans le schéma)
+      deliveries: {
         take: 5,
         orderBy: {
           startedAt: "desc",
@@ -67,7 +65,7 @@ export const getDriverById = async (id: number) => {
         },
       },
       vehicle: true,
-      deliveries: {         // ✅ FIX: "delivery" → "deliveries"
+      deliveries: {
         include: {
           order: {
             include: {
@@ -102,7 +100,7 @@ export const getDriverByUserId = async (userId: number) => {
         },
       },
       vehicle: true,
-      deliveries: {         // ✅ FIX: "delivery" → "deliveries"
+      deliveries: {
         include: {
           order: {
             include: {
@@ -146,7 +144,6 @@ export const updateDriverAvailability = async (
 };
 
 export const deleteDriver = async (driverId: number) => {
-  // ✅ FIX: Utiliser une transaction pour garantir l'atomicité
   return prisma.$transaction(async (tx) => {
     await tx.vehicle.deleteMany({
       where: { driverId },

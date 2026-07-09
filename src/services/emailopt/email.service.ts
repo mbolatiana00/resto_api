@@ -1,18 +1,40 @@
 import nodemailer from "nodemailer";
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT),
-  secure: false, // false pour port 587 (TLS)
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+const getMailerConfig = () => {
+  const host = process.env.SMTP_HOST || process.env.MAIL_HOST;
+  const port = Number(process.env.SMTP_PORT || process.env.MAIL_PORT || 587);
+  const user = process.env.SMTP_USER || process.env.MAIL_USERNAME;
+  const pass = process.env.SMTP_PASS || process.env.MAIL_PASSWORD;
+  const fromAddress = process.env.SMTP_FROM || process.env.MAIL_FROM_ADDRESS || user;
+  const fromName = process.env.SMTP_FROM_NAME || process.env.MAIL_FROM_NAME || "Resto API";
+
+  return {
+    host,
+    port,
+    secure: port === 465,
+    auth: user && pass ? { user, pass } : undefined,
+    from: `"${fromName}" <${fromAddress}>`,
+  };
+};
 
 export const sendOtpEmail = async (email: string, code: string) => {
+  const { host, port, secure, auth, from } = getMailerConfig();
+
+  if (!host || !auth?.user || !auth?.pass) {
+    throw new Error(
+      `Configuration SMTP incomplète. Vérifie SMTP_HOST/SMTP_USER/SMTP_PASS ou MAIL_HOST/MAIL_USERNAME/MAIL_PASSWORD.`
+    );
+  }
+
+  const transporter = nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    auth,
+  });
+
   await transporter.sendMail({
-    from: `"Resto API" <${process.env.SMTP_FROM}>`,
+    from,
     to: email,
     subject: "Vérification de ton compte",
     html: `

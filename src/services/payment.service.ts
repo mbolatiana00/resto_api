@@ -1,6 +1,7 @@
-import { PrismaClient, PaymentStatus, PaymentMethod } from "@prisma/client";
+import {prisma} from "../lib/prisma"; // chemin relatif depuis lib/prisma.ts
+import { PaymentStatus, PaymentMethod } from "../generated/prisma/client"; // chemin relatif depuis generated/prisma/client.ts
 
-const prisma = new PrismaClient();
+
 
 interface CreatePaymentData {
   orderId: number;

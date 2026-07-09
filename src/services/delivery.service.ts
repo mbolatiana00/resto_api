@@ -1,6 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma} from "../lib/prisma"; // chemin relatif depuis lib/prisma.ts
 
-const prisma = new PrismaClient();
+    
 
 interface deliveryData {
     orderId: number,
