@@ -25,7 +25,7 @@ export const getMyCoupon = async (request:Request,response:Response):Promise <vo
 
 export const checkLoyality = async (request: Request, response:Response): Promise<void>=>{
     try {
-        const userId : (request as any).user.id
+        const userId = (request as any).user.id
     } catch (err:any) {
         
     }
